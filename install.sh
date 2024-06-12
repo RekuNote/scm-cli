@@ -18,17 +18,21 @@ fi
 
 # Download scm-cli script
 echo "Downloading scm-cli script..."
-curl -o scm-cli https://raw.githubusercontent.com/YourGitHubUsername/YourRepoName/main/scm-cli
+temp_dir=$(mktemp -d)
+curl -o "$temp_dir/scm-cli" https://raw.githubusercontent.com/YourGitHubUsername/YourRepoName/main/scm-cli
 
 # Make the script executable
-chmod +x scm-cli
+chmod +x "$temp_dir/scm-cli"
 
 # Move the script to a directory in PATH
 if [[ "$OS" == "linux" ]]; then
-    sudo mv scm-cli /usr/local/bin/
+    sudo mv "$temp_dir/scm-cli" /usr/local/bin/
 elif [[ "$OS" == "macos" ]]; then
-    sudo mv scm-cli /usr/local/bin/
+    sudo mv "$temp_dir/scm-cli" /usr/local/bin/
 fi
+
+# Clean up
+rm -rf "$temp_dir"
 
 echo "scm-cli has been installed. You can now run it from anywhere using the command 'scm-cli'."
 

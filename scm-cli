@@ -15,6 +15,21 @@ by lexi/rekushi <3
 
 EOF
 
+# Check for updates
+check_for_updates() {
+    local_script=$(mktemp)
+    curl -s https://raw.githubusercontent.com/RekuNote/scm-cli/main/scm-cli -o $local_script
+
+    if ! diff -q $local_script $0 > /dev/null; then
+        echo "You are running an outdated version of scm-cli. Please update by running scm-cli -u"
+        echo
+    fi
+
+    rm $local_script
+}
+
+check_for_updates
+
 # check if jq is installed
 check_jq_installed() {
     if ! command -v jq &> /dev/null; then

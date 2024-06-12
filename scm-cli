@@ -185,7 +185,7 @@ download_brstm() {
     local output_path=$2
     
     if [ -z "$output_path" ];then
-        output_path="$HOME/Desktop/brstm"
+        output_path="$PWD/brstm"
         mkdir -p "$output_path"
     fi
     
@@ -210,6 +210,140 @@ download_brstm() {
     fi
 }
 
+# download a file with song id and format
+download_file() {
+    local song_id=$1
+    local download_format=$2
+
+    case $download_format in
+        brstm)
+            output_path="$PWD/brstm"
+            ;;
+        bcstm)
+            output_path="$PWD/bcstm"
+            ;;
+        bfstm_wiiu)
+            output_path="$PWD/bfstm/wiiu"
+            ;;
+        bfstm_switch)
+            output_path="$PWD/bfstm/switch"
+            ;;
+        bwav)
+            output_path="$PWD/bwav"
+            ;;
+        nus3audio)
+            output_path="$PWD/nus3audio"
+            ;;
+        *)
+            echo "Invalid format"; exit 1 ;;
+    esac
+
+    mkdir -p "$output_path"
+
+    local response=$(curl -s "${BASE_URL}/song/$song_id")
+
+    if echo "$response" | jq . > /dev/null 2>&1; then
+        local song_name=$(echo "$response" | jq -r '.name')
+        local download_url="https://www.smashcustommusic.net/$download_format/$song_id.$download_format"
+        local output_file="$output_path/${song_name// /_}.$download_format"
+        curl -o "$output_file" "$download_url"
+
+        if [ $? -eq 0 ]; then
+            echo "Downloaded to: $output_file"
+        else
+            echo "Error: Failed to download file."
+        fi
+    else
+        echo "Error: Invalid JSON response."
+        exit 1
+    fi
+}
+
+# update the script
+update_script() {
+    curl -sL https://raw.githubusercontent.com/RekuNote/scm-cli/main/install.sh | bash
+}
+
+# show track info
+show_track_info() {
+    local song_id=$1
+    local response=$(curl -s "${BASE_URL}/song/$song_id")
+
+    if echo "$response" | jq . > /dev/null 2>&1; then
+        local song_name=$(echo "$response" | jq -r '.name')
+        local description=$(echo "$response" | jq -r '.description')
+        local game_name=$(echo "$response" | jq -r '.game_name')
+        local theme_type=$(echo "$response" | jq -r '.theme_type')
+        local uploader=$(echo "$response" | jq -r '.uploader')
+        local length=$(echo "$response" | jq -r '.length')
+        local size=$(echo "$response" | jq -r '.size')
+        local downloads=$(echo "$response" | jq -r '.downloads')
+        local loop_type=$(echo "$response" | jq -r '.loop_type')
+        local start_loop_point=$(echo "$response" | jq -r '.start_loop_point')
+        local end_loop_point=$(echo "$response" | jq -r '.end_loop_point')
+        local sample_rate=$(echo "$response" | jq -r '.sample_rate')
+
+        local length_minutes=$((length / 60))
+        local length_seconds=$((length % 60))
+        local size_mb=$(awk "BEGIN {printf \"%.2f\", $size/1048576}")
+
+        cat <<EOF
+Song Name: $song_name
+$description
+
+Game: $game_name
+Song Type: $theme_type
+Song ID: $song_id
+Uploaded By: $uploader
+Length: ${length_minutes}m ${length_seconds}s
+BRSTM Size: ${size_mb}MB
+Downloads: $downloads
+Loop Type: $loop_type
+Start Loop Point: $start_loop_point
+End Loop Point: $end_loop_point
+Sample Rate: $sample_rate
+
+D for Download Options
+X to Exit
+EOF
+
+        read -n 1 -s user_input
+        echo
+
+        if [[ "$user_input" =~ ^[Dd]$ ]]; then
+            cat <<EOF
+Download Options:
+1 to download BRSTM
+2 to download BCSTM
+3 to download BFSTM (Wii U)
+4 to download BFSTM (Switch)
+5 to download BWAV
+6 to download NUS3Audio
+X to Exit
+EOF
+
+            read -n 1 -s download_option
+            echo
+
+            case "$download_option" in
+                1) download_format="brstm" ;;
+                2) download_format="bcstm" ;;
+                3) download_format="bfstm_wiiu" ;;
+                4) download_format="bfstm_switch" ;;
+                5) download_format="bwav" ;;
+                6) download_format="nus3audio" ;;
+                [Xx]) exit 0 ;;
+                *) echo "Invalid option"; exit 1 ;;
+            esac
+
+            download_file "$song_id" "$download_format"
+        fi
+    else
+        echo "Error: Invalid JSON response."
+        exit 1
+    fi
+}
+
 # stuff
 if [ $# -eq 0 ]; then
     echo "Usage: $0 [OPTIONS]"
@@ -218,6 +352,8 @@ if [ $# -eq 0 ]; then
     echo "  -s, --search <game_id>     Search songs by game ID"
     echo "  -d, --download <song_id>   Download BRSTM file by song ID"
     echo "  -o, --output <path>        Specify output path for downloads"
+    echo "  -u, --update               Update the script"
+    echo "  -t, --trackinfo <song_id>  Show track info"
     exit 1
 fi
 
@@ -243,6 +379,15 @@ while [[ $# -gt 0 ]]; do
         ;;
         -o|--output)
         output_path="$2"
+        shift # past argument
+        shift # past value
+        ;;
+        -u|--update)
+        update_script
+        shift # past argument
+        ;;
+        -t|--trackinfo)
+        show_track_info "$2"
         shift # past argument
         shift # past value
         ;;

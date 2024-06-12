@@ -60,7 +60,7 @@ Run the script with the desired options:
 ### Options
 
 - `-l, --list`                 List all games
-- `-s, --search <game_id>`     Search songs by game ID
+- `-g, --game <game_id>`       Search songs by game ID
 - `-t, --trackinfo <song_id>`  Shows track info by song ID
 - `-d, --download <song_id>`   Download BRSTM file by song ID
 - `-o, --output <path>`        Specify output path for downloads

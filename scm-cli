@@ -133,16 +133,35 @@ EOF
             echo "← to show Previous Entries"
             echo
 
-            read -n 1 -s next_page
+            read -n 1 -s next_page_key
             echo
+
+            case "$next_page_key" in
+                $'\x1b') # ESC sequence
+                    read -n 2 -s rest
+                    if [[ "$rest" == "[C" ]]; then
+                        next_page="N"
+                    elif [[ "$rest" == "[D" ]]; then
+                        next_page="R"
+                    fi
+                    ;;
+                [Nn])
+                    next_page="N"
+                    ;;
+                [Rr])
+                    next_page="R"
+                    ;;
+                [Xx])
+                    exit 0
+                    ;;
+            esac
+
             if [[ "$next_page" =~ ^[Rr]$ ]]; then
-                page=$((page + 1))
-            elif [[ "$next_page" =~ ^[Ll]$ ]]; then
                 if [ $page -gt 0 ]; then
                     page=$((page - 1))
                 fi
-            elif [[ "$next_page" =~ ^[Xx]$ ]]; then
-                exit 0
+            elif [[ "$next_page" =~ ^[Nn]$ ]]; then
+                page=$((page + 1))
             fi
         else
             echo "Error: Invalid JSON response."

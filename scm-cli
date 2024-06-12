@@ -15,21 +15,6 @@ by lexi/rekushi <3
 
 EOF
 
-# Check for updates
-check_for_updates() {
-    local_script=$(mktemp)
-    curl -s https://raw.githubusercontent.com/RekuNote/scm-cli/main/scm-cli -o $local_script
-
-    if ! diff -q $local_script $0 > /dev/null; then
-        echo "You are running an outdated version of scm-cli. Please update by running scm-cli -u"
-        echo
-    fi
-
-    rm $local_script
-}
-
-check_for_updates
-
 # check if jq is installed
 check_jq_installed() {
     if ! command -v jq &> /dev/null; then
@@ -276,7 +261,14 @@ download_file() {
 
 # update the script
 update_script() {
-    curl -sL https://raw.githubusercontent.com/RekuNote/scm-cli/main/install.sh | bash
+    local current_script=$(realpath "$0")
+    local remote_script=$(curl -s https://raw.githubusercontent.com/RekuNote/scm-cli/main/scm-cli)
+
+    if diff <(cat "$current_script") <(echo "$remote_script") > /dev/null; then
+        echo "You are already running the latest version of scm-cli."
+    else
+        curl -sL https://raw.githubusercontent.com/RekuNote/scm-cli/main/install.sh | bash
+    fi
 }
 
 # show track info

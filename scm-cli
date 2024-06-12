@@ -1,7 +1,5 @@
 #!/bin/bash
 
-clear
-
 cat << 'EOF'
                                                      /$$ /$$
                                                     | $$|__/
@@ -93,7 +91,8 @@ list_games() {
     local page=0
     local per_page=20
     local next_page="N"
-    while [[ "$next_page" =~ ^[Nn]$ ]]; do
+    local first_display=true
+    while [[ "$next_page" =~ ^[NnRr]$ ]]; do
         local offset=$((page * per_page))
         local response=$(curl -s "${BASE_URL}/gamelist/")
         
@@ -106,8 +105,8 @@ list_games() {
                 break
             fi
             
-            clear
-            cat << 'EOF'
+            if $first_display; then
+                cat << 'EOF'
                                                      /$$ /$$
                                                     | $$|__/
   /$$$$$$$  /$$$$$$$ /$$$$$$/$$$$           /$$$$$$$| $$ /$$
@@ -118,9 +117,11 @@ list_games() {
 |_______/  \_______/|__/ |__/ |__/         \_______/|__/|__/
 
 
-by lexi/rekushi
+by lexi/rekushi <3
 
 EOF
+                first_display=false
+            fi
 
             echo "Total games available: $game_count"
             echo "Games (Page $((page + 1))):"
@@ -128,12 +129,18 @@ EOF
             
             echo
             echo "X to Exit"
-            echo "N to show Next Entries"
+            echo "→ to show Next Entries"
+            echo "← to show Previous Entries"
+            echo
 
             read -n 1 -s next_page
             echo
-            if [[ "$next_page" =~ ^[Nn]$ ]]; then
+            if [[ "$next_page" =~ ^[Rr]$ ]]; then
                 page=$((page + 1))
+            elif [[ "$next_page" =~ ^[Ll]$ ]]; then
+                if [ $page -gt 0 ]; then
+                    page=$((page - 1))
+                fi
             elif [[ "$next_page" =~ ^[Xx]$ ]]; then
                 exit 0
             fi
@@ -173,7 +180,7 @@ download_brstm() {
     
     local response=$(curl -s "${BASE_URL}/song/$song_id")
     
-    if echo "$response" | jq . > /dev/null 2>&1; then
+    if echo "$response" | jq . > /dev/null 2>& 1; then
         local song_name=$(echo "$response" | jq -r '.name')
         
         local brstm_url="https://www.smashcustommusic.net/brstm/$song_id.brstm"

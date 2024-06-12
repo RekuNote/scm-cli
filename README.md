@@ -1,6 +1,6 @@
 <div align="center">
   <a href="https://github.com/RekuNote/scm-cli/">
-    <img src="https://github.com/RekuNote/scm-cli/blob/main/icon.png?raw=true" alt="Logo" width="80" height="80">
+    <img src="logo.png alt="Logo" width="80" height="80">
   </a>
 
   <h3 align="center">scm-cli</h3>

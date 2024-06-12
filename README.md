@@ -6,7 +6,7 @@
   <h3 align="center">scm-cli</h3>
 
   <p align="center">
-    scm-cli is a terminal client for downloading BRSTM files from Smash Custom Music Archive (smashcustommusic.net).
+    scm-cli is a terminal client for downloading BRSTM files from Smash Custom Music Archive (smashcustommusic.net)
     <br />
     © RekuBuild 2024
     <br />

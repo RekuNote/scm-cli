@@ -92,7 +92,7 @@ list_games() {
     local per_page=20
     local next_page="N"
     local first_display=true
-    while [[ "$next_page" =~ ^[NnRr]$ ]]; do
+    while [[ "$next_page" =~ ^[NnBb]$ ]]; do
         local offset=$((page * per_page))
         local response=$(curl -s "${BASE_URL}/gamelist/")
         
@@ -129,34 +129,26 @@ EOF
             
             echo
             echo "X to Exit"
-            echo "→ to show Next Entries"
-            echo "← to show Previous Entries"
+            echo "N to show Next Entries"
+            echo "B to show Previous Entries"
             echo
 
             read -n 1 -s next_page_key
             echo
 
             case "$next_page_key" in
-                $'\x1b') # ESC sequence
-                    read -n 2 -s rest
-                    if [[ "$rest" == "[C" ]]; then
-                        next_page="N"
-                    elif [[ "$rest" == "[D" ]]; then
-                        next_page="R"
-                    fi
-                    ;;
                 [Nn])
                     next_page="N"
                     ;;
-                [Rr])
-                    next_page="R"
+                [Bb])
+                    next_page="B"
                     ;;
                 [Xx])
                     exit 0
                     ;;
             esac
 
-            if [[ "$next_page" =~ ^[Rr]$ ]]; then
+            if [[ "$next_page" =~ ^[Bb]$ ]]; then
                 if [ $page -gt 0 ]; then
                     page=$((page - 1))
                 fi
@@ -192,14 +184,14 @@ download_brstm() {
     local song_id=$1
     local output_path=$2
     
-    if [ -z "$output_path" ]; then
+    if [ -z "$output_path" ];then
         output_path="$HOME/Desktop/brstm"
         mkdir -p "$output_path"
     fi
     
     local response=$(curl -s "${BASE_URL}/song/$song_id")
     
-    if echo "$response" | jq . > /dev/null 2>& 1; then
+    if echo "$response" | jq . > /dev/null 2>&1; then
         local song_name=$(echo "$response" | jq -r '.name')
         
         local brstm_url="https://www.smashcustommusic.net/brstm/$song_id.brstm"

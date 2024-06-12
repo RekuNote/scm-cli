@@ -37,12 +37,17 @@
 
 ## Installation
 
-1. Clone the repository or download the script file.
-2. Make the script executable:
+Run the install command:<br>
+`curl -sL https://raw.githubusercontent.com/RekuNote/scm-cli/main/install.sh | bash`
 
-```sh
-chmod +x scm-cli
-```
+<br>
+If this doesn't work, run scm-cli portably by:
+
+- Downloading the `scm-cli` file
+- Allowing execute permissions:
+`chmod +x scm-cli`
+- Running the program:
+`./scm-cli`
 
 ## Usage
 

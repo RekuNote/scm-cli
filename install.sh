@@ -16,6 +16,16 @@ if [[ "$OS" == "linux" && $(uname -r) == *microsoft* ]]; then
     exit 1
 fi
 
+# Check if scm-cli is already installed and remove it if exists
+if command -v scm-cli &> /dev/null; then
+    echo "Existing scm-cli installation found. Uninstalling..."
+    sudo rm -f $(which scm-cli)
+    if [ $? -ne 0 ]; then
+        echo "Failed to uninstall existing scm-cli. Please check your permissions and try again."
+        exit 1
+    fi
+fi
+
 # Download scm-cli script
 echo "Downloading scm-cli script..."
 temp_dir=$(mktemp -d)

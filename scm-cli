@@ -349,7 +349,7 @@ if [ $# -eq 0 ]; then
     echo "Usage: $0 [OPTIONS]"
     echo "Options:"
     echo "  -l, --list                 List all games"
-    echo "  -s, --search <game_id>     Search songs by game ID"
+    echo "  -g, --game <game_id>       Search songs by game ID"
     echo "  -d, --download <song_id>   Download BRSTM file by song ID"
     echo "  -o, --output <path>        Specify output path for downloads"
     echo "  -u, --update               Update the script"
@@ -367,7 +367,7 @@ while [[ $# -gt 0 ]]; do
         list_games
         shift # past argument
         ;;
-        -s|--search)
+        -g|--game)
         search_songs "$2"
         shift # past argument
         shift # past value

@@ -19,7 +19,12 @@ fi
 # Download scm-cli script
 echo "Downloading scm-cli script..."
 temp_dir=$(mktemp -d)
-curl -o "$temp_dir/scm-cli" https://raw.githubusercontent.com/YourGitHubUsername/YourRepoName/main/scm-cli
+curl -L -o "$temp_dir/scm-cli" https://raw.githubusercontent.com/YourGitHubUsername/YourRepoName/main/scm-cli
+
+if [ $? -ne 0 ]; then
+    echo "Failed to download scm-cli script. Please check your internet connection and try again."
+    exit 1
+fi
 
 # Make the script executable
 chmod +x "$temp_dir/scm-cli"

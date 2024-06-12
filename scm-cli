@@ -1,0 +1,240 @@
+#!/bin/bash
+
+clear
+
+cat << 'EOF'
+                                                     /$$ /$$
+                                                    | $$|__/
+  /$$$$$$$  /$$$$$$$ /$$$$$$/$$$$           /$$$$$$$| $$ /$$
+ /$$_____/ /$$_____/| $$_  $$_  $$ /$$$$$$ /$$_____/| $$| $$
+|  $$$$$$ | $$      | $$ \ $$ \ $$|______/| $$      | $$| $$
+ \____  $$| $$      | $$ | $$ | $$        | $$      | $$| $$
+ /$$$$$$$/|  $$$$$$$| $$ | $$ | $$        |  $$$$$$$| $$| $$
+|_______/  \_______/|__/ |__/ |__/         \_______/|__/|__/
+
+
+by lexi/rekushi <3
+
+EOF
+
+# check if jq is installed
+check_jq_installed() {
+    if ! command -v jq &> /dev/null; then
+        return 1
+    else
+        return 0
+    fi
+}
+
+# install jq on macOS
+install_jq_macos() {
+    if ! command -v brew &> /dev/null; then
+        echo "Homebrew is not installed. Please install Homebrew first."
+        exit 1
+    else
+        echo "Installing jq using Homebrew..."
+        brew install jq
+    fi
+}
+
+# install jq on Debian-based Linux
+install_jq_debian() {
+    echo "Installing jq using apt-get..."
+    sudo apt-get update
+    sudo apt-get install -y jq
+}
+
+# install jq on Red Hat-based Linux
+install_jq_redhat() {
+    echo "Installing jq using dnf..."
+    sudo dnf install -y jq
+}
+
+# install jq on Arch Linux
+install_jq_arch() {
+    echo "Installing jq using pacman..."
+    sudo pacman -S jq
+}
+
+# check and install jq
+check_and_install_jq() {
+    check_jq_installed
+    if [ $? -ne 0 ]; then
+        echo "jq is not installed."
+        read -p "Do you want to install jq? (yes/no): " install_jq
+        if [ "$install_jq" == "yes" ]; then
+            if [[ "$OSTYPE" == "darwin"* ]]; then
+                install_jq_macos
+            elif [[ -f /etc/debian_version ]]; then
+                install_jq_debian
+            elif [[ -f /etc/redhat-release ]]; then
+                install_jq_redhat
+            elif [[ -f /etc/arch-release ]]; then
+                install_jq_arch
+            else
+                echo "Unsupported OS. Please install jq manually."
+                exit 1
+            fi
+        else
+            echo "jq is required for this script to run."
+            exit 1
+        fi
+    fi
+}
+
+# check and install jq if necessary
+check_and_install_jq
+
+# base url for api
+BASE_URL="https://www.smashcustommusic.net/json"
+
+# list all games
+list_games() {
+    local page=0
+    local per_page=20
+    local next_page="N"
+    while [[ "$next_page" =~ ^[Nn]$ ]]; do
+        local offset=$((page * per_page))
+        local response=$(curl -s "${BASE_URL}/gamelist/")
+        
+        if echo "$response" | jq . > /dev/null 2>&1; then
+            local game_count=$(echo "$response" | jq -r '.game_count')
+            local games=$(echo "$response" | jq -r --argjson offset "$offset" --argjson per_page "$per_page" '.games | .[$offset:$offset + $per_page][] | "\(.game_id): \(.game_name) (\(.song_count) songs)"')
+            
+            if [ -z "$games" ]; then
+                echo "No more games to display."
+                break
+            fi
+            
+            clear
+            cat << 'EOF'
+                                                     /$$ /$$
+                                                    | $$|__/
+  /$$$$$$$  /$$$$$$$ /$$$$$$/$$$$           /$$$$$$$| $$ /$$
+ /$$_____/ /$$_____/| $$_  $$_  $$ /$$$$$$ /$$_____/| $$| $$
+|  $$$$$$ | $$      | $$ \ $$ \ $$|______/| $$      | $$| $$
+ \____  $$| $$      | $$ | $$ | $$        | $$      | $$| $$
+ /$$$$$$$/|  $$$$$$$| $$ | $$ | $$        |  $$$$$$$| $$| $$
+|_______/  \_______/|__/ |__/ |__/         \_______/|__/|__/
+
+
+by lexi/rekushi
+
+EOF
+
+            echo "Total games available: $game_count"
+            echo "Games (Page $((page + 1))):"
+            echo "$games"
+            
+            echo
+            echo "X to Exit"
+            echo "N to show Next Entries"
+
+            read -n 1 -s next_page
+            echo
+            if [[ "$next_page" =~ ^[Nn]$ ]]; then
+                page=$((page + 1))
+            elif [[ "$next_page" =~ ^[Xx]$ ]]; then
+                exit 0
+            fi
+        else
+            echo "Error: Invalid JSON response."
+            exit 1
+        fi
+    done
+}
+
+# search for songs by game id
+search_songs() {
+    local game_id=$1
+    local response=$(curl -s "${BASE_URL}/game/$game_id")
+    
+    if echo "$response" | jq . > /dev/null 2>&1; then
+        local game_name=$(echo "$response" | jq -r '.game_name')
+        echo "Game: $game_name"
+        local songs=$(echo "$response" | jq -r '.songs[] | "\(.song_id): \(.song_name) (\(.song_length) seconds)"')
+        echo "Songs:"
+        echo "$songs"
+    else
+        echo "Error: Invalid JSON response."
+        exit 1
+    fi
+}
+
+# download a brstm with song id
+download_brstm() {
+    local song_id=$1
+    local output_path=$2
+    
+    if [ -z "$output_path" ]; then
+        output_path="$HOME/Desktop/brstm"
+        mkdir -p "$output_path"
+    fi
+    
+    local response=$(curl -s "${BASE_URL}/song/$song_id")
+    
+    if echo "$response" | jq . > /dev/null 2>&1; then
+        local song_name=$(echo "$response" | jq -r '.name')
+        
+        local brstm_url="https://www.smashcustommusic.net/brstm/$song_id.brstm"
+        
+        local output_file="$output_path/${song_name// /_}.brstm"
+        curl -o "$output_file" "$brstm_url"
+        
+        if [ $? -eq 0 ]; then
+            echo "Downloaded to: $output_file"
+        else
+            echo "Error: Failed to download BRSTM file."
+        fi
+    else
+        echo "Error: Invalid JSON response."
+        exit 1
+    fi
+}
+
+# stuff
+if [ $# -eq 0 ]; then
+    echo "Usage: $0 [OPTIONS]"
+    echo "Options:"
+    echo "  -l, --list                 List all games"
+    echo "  -s, --search <game_id>     Search songs by game ID"
+    echo "  -d, --download <song_id>   Download BRSTM file by song ID"
+    echo "  -o, --output <path>        Specify output path for downloads"
+    exit 1
+fi
+
+output_path=""
+song_id=""
+
+while [[ $# -gt 0 ]]; do
+    key="$1"
+    case $key in
+        -l|--list)
+        list_games
+        shift # past argument
+        ;;
+        -s|--search)
+        search_songs "$2"
+        shift # past argument
+        shift # past value
+        ;;
+        -d|--download)
+        song_id="$2"
+        shift # past argument
+        shift # past value
+        ;;
+        -o|--output)
+        output_path="$2"
+        shift # past argument
+        shift # past value
+        ;;
+        *)
+        echo "Unknown option: $key"
+        exit 1
+        ;;
+    esac
+done
+
+if [ ! -z "$song_id" ]; then
+    download_brstm "$song_id" "$output_path"
+fi

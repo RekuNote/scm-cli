@@ -266,6 +266,7 @@ update_script() {
 
     if diff <(cat "$current_script") <(echo "$remote_script") > /dev/null; then
         echo "You are already running the latest version of scm-cli."
+        echo
     else
         curl -sL https://raw.githubusercontent.com/RekuNote/scm-cli/main/install.sh | bash
     fi

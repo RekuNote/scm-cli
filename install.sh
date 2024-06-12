@@ -26,13 +26,18 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+# Check if the downloaded file contains 404 error
+if grep -q "404:" "$temp_dir/scm-cli"; then
+    echo "Error: The scm-cli script could not be found at the specified URL. Please check the URL and try again."
+    rm -rf "$temp_dir"
+    exit 1
+fi
+
 # Make the script executable
 chmod +x "$temp_dir/scm-cli"
 
 # Move the script to a directory in PATH
-if [[ "$OS" == "linux" ]]; then
-    sudo mv "$temp_dir/scm-cli" /usr/local/bin/
-elif [[ "$OS" == "macos" ]]; then
+if [[ "$OS" == "linux" || "$OS" == "macos" ]]; then
     sudo mv "$temp_dir/scm-cli" /usr/local/bin/
 fi
 

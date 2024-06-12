@@ -28,7 +28,7 @@
 
 - List all available games and their corresponding IDs.
 - Search for songs by game ID.
-- Download BRSTM files by song ID.
+- Download BRSTM (or other) files by song ID.
 - Specify output path for downloads.
 
 ## Requirements
@@ -37,7 +37,7 @@
 
 ## Installation
 
-Run the install command:<br>
+Run the install command (this command can also be used to update):<br>
 `curl -sL https://raw.githubusercontent.com/RekuNote/scm-cli/main/install.sh | bash`
 
 <br>
@@ -61,8 +61,10 @@ Run the script with the desired options:
 
 - `-l, --list`                 List all games
 - `-s, --search <game_id>`     Search songs by game ID
+- `-t, --trackinfo <song_id>`   Shows track info by song ID
 - `-d, --download <song_id>`   Download BRSTM file by song ID
 - `-o, --output <path>`        Specify output path for downloads
+- `-u, --update <path>`        Specify output path for downloads
 
 ### Examples
 

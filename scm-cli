@@ -1,8 +1,6 @@
 #!/bin/bash
 
-# test
-
-# set the window title
+# Set the window title
 echo -ne "\033]0;Smash Custom Music Archive\007"
 
 ascii_art=$(cat << 'EOF'
@@ -23,7 +21,7 @@ by lexi/rekushi <3
 EOF
 )
 
-# clear terminal and print ascii art with  line break
+# clear terminal and print ascii art with line break
 clear_and_print_art() {
     clear
     echo "$ascii_art"
@@ -393,7 +391,7 @@ update_script() {
     local current_script=$(realpath "$0")
     local remote_script=$(curl -s https://raw.githubusercontent.com/RekuNote/scm-cli/main/scm-cli)
 
-    if diff <(cat "$current_script") <(echo "$remote_script") > /dev/null; then
+    if cmp -s "$current_script" <(echo "$remote_script"); then
         echo "You are already running the latest version of scm-cli."
         echo
     else
@@ -410,7 +408,7 @@ check_for_updates() {
     if [[ "$update_choice" =~ ^[Yy]$ ]]; then
         local current_script=$(realpath "$0")
         local remote_script=$(curl -s https://raw.githubusercontent.com/RekuNote/scm-cli/main/scm-cli)
-        if diff <(cat "$current_script") <(echo "$remote_script") > /dev/null; then
+        if cmp -s "$current_script" <(echo "$remote_script"); then
             echo "You are already running the latest version of scm-cli."
             echo
         else
@@ -429,7 +427,7 @@ check_for_updates() {
     list_games
 }
 
-# check for updates without clearing or ASCII art
+# check for updates without clearing or ascii art
 check_for_updates_no_clear() {
     echo "Would you like to check for updates? Y/N"
     read -n 1 -s update_choice
@@ -437,7 +435,7 @@ check_for_updates_no_clear() {
     if [[ "$update_choice" =~ ^[Yy]$ ]]; then
         local current_script=$(realpath "$0")
         local remote_script=$(curl -s https://raw.githubusercontent.com/RekuNote/scm-cli/main/scm-cli)
-        if diff <(cat "$current_script") <(echo "$remote_script") > /dev/null; then
+        if cmp -s "$current_script" <(echo "$remote_script"); then
             echo "You are already running the latest version of scm-cli."
             echo
         else
@@ -457,7 +455,7 @@ check_for_updates_no_clear() {
     exit 0
 }
 
-# main script stuff
+# main script logic
 if [ $# -eq 0 ]; then
     list_games
 else

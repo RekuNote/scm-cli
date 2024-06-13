@@ -1,6 +1,9 @@
 #!/bin/bash
 
-cat << 'EOF'
+# Set the window title
+echo -ne "\033]0;Smash Custom Music Archive\007"
+
+ascii_art=$(cat << 'EOF'
                                                      /$$ /$$
                                                     | $$|__/
   /$$$$$$$  /$$$$$$$ /$$$$$$/$$$$           /$$$$$$$| $$ /$$
@@ -13,7 +16,17 @@ cat << 'EOF'
 
 by lexi/rekushi <3
 
+------------------------------------------------------------
+
 EOF
+)
+
+# Function to clear terminal and print ASCII art with a line break
+clear_and_print_art() {
+    clear
+    echo "$ascii_art"
+    echo ""
+}
 
 # check if jq is installed
 check_jq_installed() {
@@ -92,7 +105,7 @@ list_games() {
     local per_page=20
     local next_page="N"
     local first_display=true
-    while [[ "$next_page" =~ ^[NnBb]$ ]]; do
+    while [[ "$next_page" =~ ^[NnBbGgUuXx]$ ]]; do
         local offset=$((page * per_page))
         local response=$(curl -s "${BASE_URL}/gamelist/")
         
@@ -105,32 +118,20 @@ list_games() {
                 break
             fi
             
-            if $first_display; then
-                cat << 'EOF'
-                                                     /$$ /$$
-                                                    | $$|__/
-  /$$$$$$$  /$$$$$$$ /$$$$$$/$$$$           /$$$$$$$| $$ /$$
- /$$_____/ /$$_____/| $$_  $$_  $$ /$$$$$$ /$$_____/| $$| $$
-|  $$$$$$ | $$      | $$ \ $$ \ $$|______/| $$      | $$| $$
- \____  $$| $$      | $$ | $$ | $$        | $$      | $$| $$
- /$$$$$$$/|  $$$$$$$| $$ | $$ | $$        |  $$$$$$$| $$| $$
-|_______/  \_______/|__/ |__/ |__/         \_______/|__/|__/
-
-
-by lexi/rekushi <3
-
-EOF
-                first_display=false
-            fi
+            clear_and_print_art
 
             echo "Total games available: $game_count"
-            echo "Games (Page $((page + 1))):"
+            echo ""
+            echo "Games (Page $((page + 1)) of $((game_count / per_page + 1))):"
+            echo ""
             echo "$games"
             
             echo
             echo "X to Exit"
             echo "N to show Next Entries"
             echo "B to show Previous Entries"
+            echo "G to Select Game"
+            echo "U to Check for Updates"
             echo
 
             read -n 1 -s next_page_key
@@ -143,8 +144,20 @@ EOF
                 [Bb])
                     next_page="B"
                     ;;
+                [Gg])
+                    read -p "Insert Game ID, or leave blank to cancel: " game_id
+                    if [ -n "$game_id" ]; then
+                        search_songs "$game_id"
+                    fi
+                    ;;
+                [Uu])
+                    check_for_updates
+                    ;;
                 [Xx])
                     exit 0
+                    ;;
+                *)
+                    echo "Invalid option. Please try again."
                     ;;
             esac
 
@@ -165,44 +178,158 @@ EOF
 # search for songs by game id
 search_songs() {
     local game_id=$1
-    local response=$(curl -s "${BASE_URL}/game/$game_id")
-    
-    if echo "$response" | jq . > /dev/null 2>&1; then
-        local game_name=$(echo "$response" | jq -r '.game_name')
-        echo "Game: $game_name"
-        local songs=$(echo "$response" | jq -r '.songs[] | "\(.song_id): \(.song_name) (\(.song_length) seconds)"')
-        echo "Songs:"
-        echo "$songs"
-    else
-        echo "Error: Invalid JSON response."
-        exit 1
-    fi
+    local page=0
+    local per_page=20
+    local next_page="N"
+
+    while [[ "$next_page" =~ ^[NnBbSsXxRr]$ ]]; do
+        local offset=$((page * per_page))
+        local response=$(curl -s "${BASE_URL}/game/$game_id")
+        
+        if echo "$response" | jq . > /dev/null 2>&1; then
+            local game_name=$(echo "$response" | jq -r '.game_name')
+            local songs=$(echo "$response" | jq -r --argjson offset "$offset" --argjson per_page "$per_page" '.songs | .[$offset:$offset + $per_page][] | "\(.song_id): \(.song_name) (\(.song_length) seconds)"')
+            local song_count=$(echo "$response" | jq -r '.songs | length')
+            
+            clear_and_print_art
+            
+            echo "Game: $game_name"
+            echo ""
+            echo "Songs (Page $((page + 1)) of $((song_count / per_page + 1))):"
+            echo ""
+            echo "$songs"
+            
+            echo
+            echo "X to Exit"
+            echo "R to Return"
+            echo "N to Show Next Entries"
+            echo "B to Show Previous Entries"
+            echo "S to Select Song"
+            echo
+
+            read -n 1 -s next_page_key
+            echo
+
+            case "$next_page_key" in
+                [Nn])
+                    next_page="N"
+                    ;;
+                [Bb])
+                    next_page="B"
+                    ;;
+                [Ss])
+                    read -p "Insert Song ID, or leave blank to cancel: " song_id
+                    if [ -n "$song_id" ]; then
+                        show_track_info "$song_id"
+                    fi
+                    ;;
+                [Rr])
+                    list_games
+                    ;;
+                [Xx])
+                    exit 0
+                    ;;
+                *)
+                    echo "Invalid option. Please try again."
+                    ;;
+            esac
+
+            if [[ "$next_page" =~ ^[Bb]$ ]]; then
+                if [ $page -gt 0 ]; then
+                    page=$((page - 1))
+                fi
+            elif [[ "$next_page" =~ ^[Nn]$ ]]; then
+                page=$((page + 1))
+            fi
+        else
+            echo "Error: Invalid JSON response."
+            exit 1
+        fi
+    done
 }
 
-# download a brstm with song id
-download_brstm() {
+# show track info
+show_track_info() {
     local song_id=$1
-    local output_path=$2
-    
-    if [ -z "$output_path" ];then
-        output_path="$PWD/brstm"
-        mkdir -p "$output_path"
-    fi
-    
     local response=$(curl -s "${BASE_URL}/song/$song_id")
-    
+
     if echo "$response" | jq . > /dev/null 2>&1; then
         local song_name=$(echo "$response" | jq -r '.name')
-        
-        local brstm_url="https://www.smashcustommusic.net/brstm/$song_id.brstm"
-        
-        local output_file="$output_path/${song_name// /_}.brstm"
-        curl -o "$output_file" "$brstm_url"
-        
-        if [ $? -eq 0 ]; then
-            echo "Downloaded to: $output_file"
-        else
-            echo "Error: Failed to download BRSTM file."
+        local description=$(echo "$response" | jq -r '.description')
+        local game_name=$(echo "$response" | jq -r '.game_name')
+        local theme_type=$(echo "$response" | jq -r '.theme_type')
+        local uploader=$(echo "$response" | jq -r '.uploader')
+        local length=$(echo "$response" | jq -r '.length')
+        local size=$(echo "$response" | jq -r '.size')
+        local downloads=$(echo "$response" | jq -r '.downloads')
+        local loop_type=$(echo "$response" | jq -r '.loop_type')
+        local start_loop_point=$(echo "$response" | jq -r '.start_loop_point')
+        local end_loop_point=$(echo "$response" | jq -r '.end_loop_point')
+        local sample_rate=$(echo "$response" | jq -r '.sample_rate')
+
+        local length_minutes=$((length / 60))
+        local length_seconds=$((length % 60))
+        local size_mb=$(awk "BEGIN {printf \"%.2f\", $size/1048576}")
+
+        clear_and_print_art
+
+        cat <<EOF
+
+Song Name: $song_name
+$description
+
+Game: $game_name
+Song Type: $theme_type
+Song ID: $song_id
+Uploaded By: $uploader
+Length: ${length_minutes}m ${length_seconds}s
+BRSTM Size: ${size_mb}MB
+Downloads: $downloads
+Loop Type: $loop_type
+Start Loop Point: $start_loop_point
+End Loop Point: $end_loop_point
+Sample Rate: $sample_rate
+
+X to Exit
+R to Return
+D for Download Options
+EOF
+
+        read -n 1 -s user_input
+        echo
+
+        if [[ "$user_input" =~ ^[Dd]$ ]]; then
+            clear_and_print_art
+            cat <<EOF
+Download Options:
+1 to download BRSTM
+2 to download BCSTM
+3 to download BFSTM (Wii U)
+4 to download BFSTM (Switch)
+5 to download BWAV
+6 to download NUS3Audio
+R to Return
+X to Exit
+EOF
+
+            read -n 1 -s download_option
+            echo
+
+            case "$download_option" in
+                1) download_format="brstm" ;;
+                2) download_format="bcstm" ;;
+                3) download_format="bfstm_wiiu" ;;
+                4) download_format="bfstm_switch" ;;
+                5) download_format="bwav" ;;
+                6) download_format="nus3audio" ;;
+                [Rr]) return ;;
+                [Xx]) exit 0 ;;
+                *) echo "Invalid option"; exit 1 ;;
+            esac
+
+            download_file "$song_id" "$download_format"
+        elif [[ "$user_input" =~ ^[Rr]$ ]]; then
+            search_songs "$game_id"
         fi
     else
         echo "Error: Invalid JSON response."
@@ -272,140 +399,73 @@ update_script() {
     fi
 }
 
-# show track info
-show_track_info() {
-    local song_id=$1
-    local response=$(curl -s "${BASE_URL}/song/$song_id")
-
-    if echo "$response" | jq . > /dev/null 2>&1; then
-        local song_name=$(echo "$response" | jq -r '.name')
-        local description=$(echo "$response" | jq -r '.description')
-        local game_name=$(echo "$response" | jq -r '.game_name')
-        local theme_type=$(echo "$response" | jq -r '.theme_type')
-        local uploader=$(echo "$response" | jq -r '.uploader')
-        local length=$(echo "$response" | jq -r '.length')
-        local size=$(echo "$response" | jq -r '.size')
-        local downloads=$(echo "$response" | jq -r '.downloads')
-        local loop_type=$(echo "$response" | jq -r '.loop_type')
-        local start_loop_point=$(echo "$response" | jq -r '.start_loop_point')
-        local end_loop_point=$(echo "$response" | jq -r '.end_loop_point')
-        local sample_rate=$(echo "$response" | jq -r '.sample_rate')
-
-        local length_minutes=$((length / 60))
-        local length_seconds=$((length % 60))
-        local size_mb=$(awk "BEGIN {printf \"%.2f\", $size/1048576}")
-
-        cat <<EOF
-Song Name: $song_name
-$description
-
-Game: $game_name
-Song Type: $theme_type
-Song ID: $song_id
-Uploaded By: $uploader
-Length: ${length_minutes}m ${length_seconds}s
-BRSTM Size: ${size_mb}MB
-Downloads: $downloads
-Loop Type: $loop_type
-Start Loop Point: $start_loop_point
-End Loop Point: $end_loop_point
-Sample Rate: $sample_rate
-
-D for Download Options
-X to Exit
-EOF
-
-        read -n 1 -s user_input
-        echo
-
-        if [[ "$user_input" =~ ^[Dd]$ ]]; then
-            cat <<EOF
-Download Options:
-1 to download BRSTM
-2 to download BCSTM
-3 to download BFSTM (Wii U)
-4 to download BFSTM (Switch)
-5 to download BWAV
-6 to download NUS3Audio
-X to Exit
-EOF
-
-            read -n 1 -s download_option
+# check for updates
+check_for_updates() {
+    clear_and_print_art
+    echo "Would you like to check for updates? Y/N"
+    read -n 1 -s update_choice
+    echo
+    if [[ "$update_choice" =~ ^[Yy]$ ]]; then
+        local current_script=$(realpath "$0")
+        local remote_script=$(curl -s https://raw.githubusercontent.com/RekuNote/scm-cli/main/scm-cli)
+        if diff <(cat "$current_script") <(echo "$remote_script") > /dev/null; then
+            echo "You are already running the latest version of scm-cli."
             echo
-
-            case "$download_option" in
-                1) download_format="brstm" ;;
-                2) download_format="bcstm" ;;
-                3) download_format="bfstm_wiiu" ;;
-                4) download_format="bfstm_switch" ;;
-                5) download_format="bwav" ;;
-                6) download_format="nus3audio" ;;
-                [Xx]) exit 0 ;;
-                *) echo "Invalid option"; exit 1 ;;
-            esac
-
-            download_file "$song_id" "$download_format"
+        else
+            echo "Update found. Would you like to update now? Y/N"
+            read -n 1 -s confirm_update
+            echo
+            if [[ "$confirm_update" =~ ^[Yy]$ ]]; then
+                curl -sL https://raw.githubusercontent.com/RekuNote/scm-cli/main/install.sh | bash
+            else
+                echo "Update aborted."
+            fi
         fi
     else
-        echo "Error: Invalid JSON response."
-        exit 1
+        echo "Update aborted."
     fi
+    list_games
 }
 
-# stuff
+# check for updates without clearing or ASCII art
+check_for_updates_no_clear() {
+    echo "Would you like to check for updates? Y/N"
+    read -n 1 -s update_choice
+    echo
+    if [[ "$update_choice" =~ ^[Yy]$ ]]; then
+        local current_script=$(realpath "$0")
+        local remote_script=$(curl -s https://raw.githubusercontent.com/RekuNote/scm-cli/main/scm-cli)
+        if diff <(cat "$current_script") <(echo "$remote_script") > /dev/null; then
+            echo "You are already running the latest version of scm-cli."
+            echo
+        else
+            echo "Update found. Would you like to update now? Y/N"
+            read -n 1 -s confirm_update
+            echo
+            if [[ "$confirm_update" =~ ^[Yy]$ ]]; then
+                curl -sL https://raw.githubusercontent.com/RekuNote/scm-cli/main/install.sh | bash
+            else
+                echo "Update aborted."
+            fi
+        fi
+    else
+        echo "Update aborted."
+        exit 0
+    fi
+    exit 0
+}
+
+# Main script logic
 if [ $# -eq 0 ]; then
-    echo "Usage: $0 [OPTIONS]"
-    echo "Options:"
-    echo "  -l, --list                 List all games"
-    echo "  -g, --game <game_id>       Search songs by game ID"
-    echo "  -d, --download <song_id>   Download BRSTM file by song ID"
-    echo "  -o, --output <path>        Specify output path for downloads"
-    echo "  -u, --update               Update the script"
-    echo "  -t, --trackinfo <song_id>  Show track info"
-    exit 1
-fi
-
-output_path=""
-song_id=""
-
-while [[ $# -gt 0 ]]; do
-    key="$1"
-    case $key in
-        -l|--list)
-        list_games
-        shift # past argument
-        ;;
-        -g|--game)
-        search_songs "$2"
-        shift # past argument
-        shift # past value
-        ;;
-        -d|--download)
-        song_id="$2"
-        shift # past argument
-        shift # past value
-        ;;
-        -o|--output)
-        output_path="$2"
-        shift # past argument
-        shift # past value
-        ;;
+    list_games
+else
+    case $1 in
         -u|--update)
-        update_script
-        shift # past argument
-        ;;
-        -t|--trackinfo)
-        show_track_info "$2"
-        shift # past argument
-        shift # past value
-        ;;
+            check_for_updates_no_clear
+            ;;
         *)
-        echo "Unknown option: $key"
-        exit 1
-        ;;
+            echo "Invalid option. Please run the script without any arguments or use -u/--update to update."
+            exit 1
+            ;;
     esac
-done
-
-if [ ! -z "$song_id" ]; then
-    download_brstm "$song_id" "$output_path"
 fi

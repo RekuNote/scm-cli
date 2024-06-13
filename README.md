@@ -27,7 +27,7 @@
 
 ## Features
 
-- Supports Linux and macOS only.
+- Supports Linux and macOS only. For Windows, use <a href="https://github.com/RekuNote/scm-py">scm-py</a>.
 - List all available games and their corresponding IDs.
 - Search for songs by game ID.
 - Download BRSTM (or other) files by song ID.

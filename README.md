@@ -27,6 +27,7 @@
 
 ## Features
 
+- Supports Linux and macOS only.
 - List all available games and their corresponding IDs.
 - Search for songs by game ID.
 - Download BRSTM (or other) files by song ID.

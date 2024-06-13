@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Set the window title
+# set the window title
 echo -ne "\033]0;Smash Custom Music Archive\007"
 
 ascii_art=$(cat << 'EOF'
@@ -21,7 +21,7 @@ by lexi/rekushi <3
 EOF
 )
 
-# Function to clear terminal and print ASCII art with a line break
+# clear terminal and print ascii art with  line break
 clear_and_print_art() {
     clear
     echo "$ascii_art"
@@ -455,7 +455,7 @@ check_for_updates_no_clear() {
     exit 0
 }
 
-# Main script logic
+# main script stuff
 if [ $# -eq 0 ]; then
     list_games
 else

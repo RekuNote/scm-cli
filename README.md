@@ -1,3 +1,4 @@
+
 <div align="center">
   <a href="https://github.com/RekuNote/scm-cli/">
     <img src="logo.png" alt="Logo" height="80">
@@ -51,47 +52,30 @@ If this doesn't work, run scm-cli portably by:
 
 ## Usage
 
-Run the script with the desired options:
+Run scm-cli:
 
 ```sh
-./scm-cli [OPTIONS]
+scm-cli
 ```
 
 ### Options
 
-- `-l, --list`                 List all games
-- `-g, --game <game_id>`       Search songs by game ID
-- `-t, --trackinfo <song_id>`  Shows track info by song ID
-- `-d, --download <song_id>`   Download BRSTM file by song ID
-- `-o, --output <path>`        Specify output path for downloads
 - `-u, --update`               Updates to latest version
 
-### Examples
+## Examples
 
-- List all games:
+- Run scm-cli normally:
 
-```sh
-./scm-cli --list
+```
+scm-cli
 ```
 
-- Search songs by game ID:
+- Update to the latest version:
 
 ```sh
-./scm-cli --search <game id>
-```
-
-- Download a BRSTM file by song ID to a specified path:
-
-```sh
-./scm-cli --download <song id> --output /path/to/download.brstm
-```
-
-- Download a BRSTM file by song ID to the default path (Desktop/brstm):
-
-```sh
-./scm-cli --download <song id>
+scm-cli --update
 ```
 
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under a modified version of the MIT License.

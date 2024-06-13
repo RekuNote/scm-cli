@@ -105,12 +105,17 @@ list_games() {
     local per_page=20
     local next_page="N"
     local first_display=true
-    while [[ "$next_page" =~ ^[NnBbGgUuXx]$ ]]; do
+    local total_pages=0
+    local game_list
+
+    while [[ "$next_page" =~ ^[NnBbGgUuXxSs]$ ]]; do
         local offset=$((page * per_page))
         local response=$(curl -s "${BASE_URL}/gamelist/")
         
         if echo "$response" | jq . > /dev/null 2>&1; then
             local game_count=$(echo "$response" | jq -r '.game_count')
+            total_pages=$(( (game_count + per_page - 1) / per_page ))  # Calculate total pages
+            game_list=$(echo "$response" | jq -r '.games | .[] | "\(.game_id): \(.game_name) (\(.song_count) songs)"')
             local games=$(echo "$response" | jq -r --argjson offset "$offset" --argjson per_page "$per_page" '.games | .[$offset:$offset + $per_page][] | "\(.game_id): \(.game_name) (\(.song_count) songs)"')
             
             if [ -z "$games" ]; then
@@ -122,7 +127,7 @@ list_games() {
 
             echo "Total games available: $game_count"
             echo ""
-            echo "Games (Page $((page + 1)) of $((game_count / per_page + 1))):"
+            echo "Games (Page $((page + 1)) of $total_pages):"
             echo ""
             echo "$games"
             
@@ -131,6 +136,7 @@ list_games() {
             echo "N to show Next Entries"
             echo "B to show Previous Entries"
             echo "G to Select Game"
+            echo "S to Skip to a character"
             echo "U to Check for Updates"
             echo
 
@@ -139,15 +145,37 @@ list_games() {
 
             case "$next_page_key" in
                 [Nn])
-                    next_page="N"
+                    if (( page + 1 < total_pages )); then  # Ensure we don't go beyond the last page
+                        next_page="N"
+                        page=$((page + 1))
+                    fi
                     ;;
                 [Bb])
-                    next_page="B"
+                    if (( page > 0 )); then  # Ensure we don't go before the first page
+                        next_page="B"
+                        page=$((page - 1))
+                    fi
                     ;;
                 [Gg])
                     read -p "Insert Game ID, or leave blank to cancel: " game_id
                     if [ -n "$game_id" ]; then
                         search_songs "$game_id"
+                    fi
+                    ;;
+                [Ss])
+                    clear_and_print_art
+                    echo "Indexing, this may take a moment..."
+                    game_list=$(curl -s "${BASE_URL}/gamelist/" | jq -r '.games | .[] | "\(.game_id): \(.game_name) (\(.song_count) songs)"')
+                    clear_and_print_art
+                    echo "Type the character you would like to skip to, or leave empty to cancel:"
+                    read character
+                    if [ -n "$character" ]; then
+                        local game_index=$(echo "$game_list" | grep -n "^${character}" | head -n 1 | cut -d: -f1)
+                        if [ -n "$game_index" ]; then
+                            page=$(( (game_index - 1) / per_page ))  # Calculate page number
+                        else
+                            echo "No games found starting with '$character'."
+                        fi
                     fi
                     ;;
                 [Uu])
@@ -160,14 +188,6 @@ list_games() {
                     echo "Invalid option. Please try again."
                     ;;
             esac
-
-            if [[ "$next_page" =~ ^[Bb]$ ]]; then
-                if [ $page -gt 0 ]; then
-                    page=$((page - 1))
-                fi
-            elif [[ "$next_page" =~ ^[Nn]$ ]]; then
-                page=$((page + 1))
-            fi
         else
             echo "Error: Invalid JSON response."
             exit 1
@@ -181,6 +201,8 @@ search_songs() {
     local page=0
     local per_page=20
     local next_page="N"
+    local total_pages=0
+    local song_list
 
     while [[ "$next_page" =~ ^[NnBbSsXxRr]$ ]]; do
         local offset=$((page * per_page))
@@ -189,13 +211,15 @@ search_songs() {
         if echo "$response" | jq . > /dev/null 2>&1; then
             local game_name=$(echo "$response" | jq -r '.game_name')
             local songs=$(echo "$response" | jq -r --argjson offset "$offset" --argjson per_page "$per_page" '.songs | .[$offset:$offset + $per_page][] | "\(.song_id): \(.song_name) (\(.song_length) seconds)"')
+            song_list=$(echo "$response" | jq -r '.songs | .[] | "\(.song_id): \(.song_name) (\(.song_length) seconds)"')
             local song_count=$(echo "$response" | jq -r '.songs | length')
+            total_pages=$(( (song_count + per_page - 1) / per_page ))  # Calculate total pages
             
             clear_and_print_art
             
             echo "Game: $game_name"
             echo ""
-            echo "Songs (Page $((page + 1)) of $((song_count / per_page + 1))):"
+            echo "Songs (Page $((page + 1)) of $total_pages):"
             echo ""
             echo "$songs"
             
@@ -212,15 +236,31 @@ search_songs() {
 
             case "$next_page_key" in
                 [Nn])
-                    next_page="N"
+                    if (( page + 1 < total_pages )); then  # Ensure we don't go beyond the last page
+                        next_page="N"
+                        page=$((page + 1))
+                    fi
                     ;;
                 [Bb])
-                    next_page="B"
+                    if (( page > 0 )); then  # Ensure we don't go before the first page
+                        next_page="B"
+                        page=$((page - 1))
+                    fi
                     ;;
                 [Ss])
-                    read -p "Insert Song ID, or leave blank to cancel: " song_id
-                    if [ -n "$song_id" ]; then
-                        show_track_info "$song_id"
+                    clear_and_print_art
+                    echo "Indexing, this may take a moment..."
+                    song_list=$(curl -s "${BASE_URL}/game/$game_id" | jq -r '.songs | .[] | "\(.song_id): \(.song_name) (\(.song_length) seconds)"')
+                    clear_and_print_art
+                    echo "Type the character you would like to skip to, or leave empty to cancel:"
+                    read character
+                    if [ -n "$character" ]; then
+                        local song_index=$(echo "$song_list" | grep -n "^${character}" | head -n 1 | cut -d: -f1)
+                        if [ -n "$song_index" ]; then
+                            page=$(( (song_index - 1) / per_page ))  # Calculate page number
+                        else
+                            echo "No songs found starting with '$character'."
+                        fi
                     fi
                     ;;
                 [Rr])
@@ -233,14 +273,6 @@ search_songs() {
                     echo "Invalid option. Please try again."
                     ;;
             esac
-
-            if [[ "$next_page" =~ ^[Bb]$ ]]; then
-                if [ $page -gt 0 ]; then
-                    page=$((page - 1))
-                fi
-            elif [[ "$next_page" =~ ^[Nn]$ ]]; then
-                page=$((page + 1))
-            fi
         else
             echo "Error: Invalid JSON response."
             exit 1
@@ -302,12 +334,13 @@ EOF
             clear_and_print_art
             cat <<EOF
 Download Options:
-1 to download BRSTM
-2 to download BCSTM
-3 to download BFSTM (Wii U)
-4 to download BFSTM (Switch)
-5 to download BWAV
-6 to download NUS3Audio
+
+1 to Download BRSTM
+2 to Download BCSTM
+3 to Download BFSTM (Wii U)
+4 to Download BFSTM (Switch)
+5 to Download BWAV
+6 to Download NUS3Audio
 R to Return
 X to Exit
 EOF
@@ -318,8 +351,8 @@ EOF
             case "$download_option" in
                 1) download_format="brstm" ;;
                 2) download_format="bcstm" ;;
-                3) download_format="bfstm_wiiu" ;;
-                4) download_format="bfstm_switch" ;;
+                3) download_format="bfstm" ;;
+                4) download_format="sw_bfstm" ;;
                 5) download_format="bwav" ;;
                 6) download_format="nus3audio" ;;
                 [Rr]) return ;;
@@ -327,7 +360,43 @@ EOF
                 *) echo "Invalid option"; exit 1 ;;
             esac
 
-            download_file "$song_id" "$download_format"
+            read -p "Please specify a path to download your file (if left empty, file will be downloaded to your desktop): " output_path
+
+            if [ -z "$output_path" ]; then
+                if [[ "$OSTYPE" == "darwin"* ]]; then
+                    desktop_path="$HOME/Desktop"
+                elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+                    desktop_path="$HOME/Desktop"
+                else
+                    echo "Unsupported OS. Please specify a path."
+                    return
+                fi
+
+                case $download_format in
+                    brstm)
+                        output_path="$desktop_path/brstm"
+                        ;;
+                    bcstm)
+                        output_path="$desktop_path/bcstm"
+                        ;;
+                    bfstm)
+                        output_path="$desktop_path/bfstm/wiiu"
+                        ;;
+                    sw_bfstm)
+                        output_path="$desktop_path/bfstm/switch"
+                        ;;
+                    bwav)
+                        output_path="$desktop_path/bwav"
+                        ;;
+                    nus3audio)
+                        output_path="$desktop_path/nus3audio"
+                        ;;
+                    *)
+                        echo "Invalid format"; exit 1 ;;
+                esac
+            fi
+
+            download_file "$song_id" "$download_format" "$output_path"
         elif [[ "$user_input" =~ ^[Rr]$ ]]; then
             search_songs "$game_id"
         fi
@@ -341,29 +410,7 @@ EOF
 download_file() {
     local song_id=$1
     local download_format=$2
-
-    case $download_format in
-        brstm)
-            output_path="$PWD/brstm"
-            ;;
-        bcstm)
-            output_path="$PWD/bcstm"
-            ;;
-        bfstm_wiiu)
-            output_path="$PWD/bfstm/wiiu"
-            ;;
-        bfstm_switch)
-            output_path="$PWD/bfstm/switch"
-            ;;
-        bwav)
-            output_path="$PWD/bwav"
-            ;;
-        nus3audio)
-            output_path="$PWD/nus3audio"
-            ;;
-        *)
-            echo "Invalid format"; exit 1 ;;
-    esac
+    local output_path=$3
 
     mkdir -p "$output_path"
 
@@ -371,7 +418,7 @@ download_file() {
 
     if echo "$response" | jq . > /dev/null 2>&1; then
         local song_name=$(echo "$response" | jq -r '.name')
-        local download_url="https://www.smashcustommusic.net/$download_format/$song_id.$download_format"
+        local download_url="https://www.smashcustommusic.net/$download_format/$song_id"
         local output_file="$output_path/${song_name// /_}.$download_format"
         curl -o "$output_file" "$download_url"
 
@@ -393,6 +440,7 @@ update_script() {
 
     if cmp -s "$current_script" <(echo "$remote_script"); then
         echo "You are already running the latest version of scm-cli."
+        sleep 3  # Pause for 3 seconds before proceeding
         echo
     else
         curl -sL https://raw.githubusercontent.com/RekuNote/scm-cli/main/install.sh | bash
@@ -410,6 +458,7 @@ check_for_updates() {
         local remote_script=$(curl -s https://raw.githubusercontent.com/RekuNote/scm-cli/main/scm-cli)
         if cmp -s "$current_script" <(echo "$remote_script"); then
             echo "You are already running the latest version of scm-cli."
+            sleep 3  # Pause for 3 seconds before proceeding
             echo
         else
             echo "Update found. Would you like to update now? Y/N"
@@ -437,6 +486,7 @@ check_for_updates_no_clear() {
         local remote_script=$(curl -s https://raw.githubusercontent.com/RekuNote/scm-cli/main/scm-cli)
         if cmp -s "$current_script" <(echo "$remote_script"); then
             echo "You are already running the latest version of scm-cli."
+            sleep 3  # Pause for 3 seconds before proceeding
             echo
         else
             echo "Update found. Would you like to update now? Y/N"

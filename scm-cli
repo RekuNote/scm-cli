@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# set window title
+# Set the window title
 echo -ne "\033]0;Smash Custom Music Archive\007"
 
 ascii_art=$(cat << 'EOF'
@@ -206,13 +206,13 @@ list_games() {
 
             case "$next_page_key" in
                 [Nn])
-                    if (( page + 1 < total_pages )); then  # ensure we don't go beyond the last page
+                    if (( page + 1 < total_pages )); then  # Ensure we don't go beyond the last page
                         next_page="N"
                         page=$((page + 1))
                     fi
                     ;;
                 [Bb])
-                    if (( page > 0 )); then  # ensure we don't go before the first page
+                    if (( page > 0 )); then  # Ensure we don't go before the first page
                         next_page="B"
                         page=$((page - 1))
                     fi
@@ -233,7 +233,7 @@ list_games() {
                     read search_term
                     if [ -n "$search_term" ]; then
                         local search_results=$(echo "$game_list" | grep -i "$search_term")
-                        local search_count=$(echo "$search_results" | wc -l | xargs)
+                        local search_count=$(echo "$search_results" | wc -l | xargs)  # Remove leading spaces
                         local search_page=0
                         local search_total_pages=$(( (search_count + per_page - 1) / per_page ))
                         while [ -n "$search_results" ]; do
@@ -290,7 +290,6 @@ list_games() {
                     ;;
                 [Uu])
                     check_for_updates
-                    exit 0  # exit after updating after updating
                     ;;
                 [Xx])
                     exit 0
@@ -324,7 +323,7 @@ search_songs() {
             local songs=$(echo "$response" | jq -r --argjson offset "$offset" --argjson per_page "$per_page" '.songs | .[$offset:$offset + $per_page][] | "\(.song_id): \(.song_name) (\(.song_length) seconds)"')
             song_list=$(echo "$response" | jq -r '.songs | .[] | "\(.song_id): \(.song_name) (\(.song_length) seconds)"')
             local song_count=$(echo "$response" | jq -r '.songs | length')
-            total_pages=$(( (song_count + per_page - 1) / per_page ))  # calculate total pages
+            total_pages=$(( (song_count + per_page - 1) / per_page ))  # Calculate total pages
             
             clear_and_print_art
             
@@ -347,13 +346,13 @@ search_songs() {
 
             case "$next_page_key" in
                 [Nn])
-                    if (( page + 1 < total_pages )); then  # ensure we don't go beyond the last page
+                    if (( page + 1 < total_pages )); then  # Ensure we don't go beyond the last page
                         next_page="N"
                         page=$((page + 1))
                     fi
                     ;;
                 [Bb])
-                    if (( page > 0 )); then  # ensure we don't go before the first page
+                    if (( page > 0 )); then  # Ensure we don't go before the first page
                         next_page="B"
                         page=$((page - 1))
                     fi
@@ -524,11 +523,11 @@ download_file() {
         local download_url="https://www.smashcustommusic.net/$download_format/$song_id.$download_format"
         local output_file="$output_path/${song_name// /_}.$download_format"
 
-        # progress bar for downloading
+        # Download with progress bar
         curl -L "$download_url" -o "$output_file" --user-agent "scm-py/0.1" --progress-bar
 
         if [ $? -eq 0 ]; then
-            # rename .sw_bfstm files to .bfstm in /switch dir
+            # Rename .sw_bfstm files to .bfstm in /switch directory
             if [[ "$download_format" == "sw_bfstm" ]]; then
                 mv "$output_file" "$output_path/${song_name// /_}.bfstm"
                 output_file="$output_path/${song_name// /_}.bfstm"
@@ -552,7 +551,7 @@ update_script() {
 
     if cmp -s "$current_script" <(echo "$remote_script"); then
         echo "You are already running the latest version of scm-cli."
-        sleep 2  # wait for 2 seconds before proceeding
+        sleep 3  # Pause for 3 seconds before proceeding
         echo
     else
         curl -sL https://raw.githubusercontent.com/RekuNote/scm-cli/main/install.sh | bash
@@ -561,6 +560,12 @@ update_script() {
 
 # check for updates
 check_for_updates() {
+    if [[ "$(realpath "$0")" != "$(which scm-cli 2>/dev/null)" ]]; then
+        echo "You are running scm-cli portably. You cannot update while running portably."
+        sleep 3  # Pause for 3 seconds before proceeding
+        return
+    fi
+    
     clear_and_print_art
     echo "Would you like to check for updates? Y/N"
     read -n 1 -s update_choice
@@ -570,7 +575,7 @@ check_for_updates() {
         local remote_script=$(curl -s https://raw.githubusercontent.com/RekuNote/scm-cli/main/scm-cli)
         if cmp -s "$current_script" <(echo "$remote_script"); then
             echo "You are already running the latest version of scm-cli."
-            sleep 2  # wait for 2 seconds before proceeding
+            sleep 3  # Pause for 3 seconds before proceeding
             echo
         else
             echo "Update found. Would you like to update now? Y/N"
@@ -578,7 +583,7 @@ check_for_updates() {
             echo
             if [[ "$confirm_update" =~ ^[Yy]$ ]]; then
                 curl -sL https://raw.githubusercontent.com/RekuNote/scm-cli/main/install.sh | bash
-                exit 0  # exit after updating
+                exit 0  # Exit after updating
             else
                 echo "Update aborted."
             fi
@@ -591,6 +596,12 @@ check_for_updates() {
 
 # check for updates without clearing or ascii art
 check_for_updates_no_clear() {
+    if [[ "$(realpath "$0")" != "$(which scm-cli 2>/dev/null)" ]]; then
+        echo "You are running scm-cli portably. You cannot update while running portably."
+        sleep 3  # Pause for 3 seconds before proceeding
+        return
+    fi
+    
     echo "Would you like to check for updates? Y/N"
     read -n 1 -s update_choice
     echo
@@ -599,7 +610,7 @@ check_for_updates_no_clear() {
         local remote_script=$(curl -s https://raw.githubusercontent.com/RekuNote/scm-cli/main/scm-cli)
         if cmp -s "$current_script" <(echo "$remote_script"); then
             echo "You are already running the latest version of scm-cli."
-            sleep 2  # wait for 2 seconds before proceeding
+            sleep 3  # Pause for 3 seconds before proceeding
             echo
         else
             echo "Update found. Would you like to update now? Y/N"

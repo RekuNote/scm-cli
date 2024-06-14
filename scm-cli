@@ -551,7 +551,7 @@ update_script() {
 
     if cmp -s "$current_script" <(echo "$remote_script"); then
         echo "You are already running the latest version of scm-cli."
-        sleep 3  # Pause for 3 seconds before proceeding
+        sleep 2  # Pause for 2 seconds before proceeding
         echo
     else
         curl -sL https://raw.githubusercontent.com/RekuNote/scm-cli/main/install.sh | bash
@@ -562,7 +562,7 @@ update_script() {
 check_for_updates() {
     if [[ "$(realpath "$0")" != "$(which scm-cli 2>/dev/null)" ]]; then
         echo "You are running scm-cli portably. You cannot update while running portably."
-        sleep 3  # Pause for 3 seconds before proceeding
+        sleep 2  # Pause for 2 seconds before proceeding
         return
     fi
     
@@ -575,7 +575,7 @@ check_for_updates() {
         local remote_script=$(curl -s https://raw.githubusercontent.com/RekuNote/scm-cli/main/scm-cli)
         if cmp -s "$current_script" <(echo "$remote_script"); then
             echo "You are already running the latest version of scm-cli."
-            sleep 3  # Pause for 3 seconds before proceeding
+            sleep 2  # Pause for 2 seconds before proceeding
             echo
         else
             echo "Update found. Would you like to update now? Y/N"
@@ -598,7 +598,7 @@ check_for_updates() {
 check_for_updates_no_clear() {
     if [[ "$(realpath "$0")" != "$(which scm-cli 2>/dev/null)" ]]; then
         echo "You are running scm-cli portably. You cannot update while running portably."
-        sleep 3  # Pause for 3 seconds before proceeding
+        sleep 2  # Pause for 2 seconds before proceeding
         return
     fi
     
@@ -610,7 +610,7 @@ check_for_updates_no_clear() {
         local remote_script=$(curl -s https://raw.githubusercontent.com/RekuNote/scm-cli/main/scm-cli)
         if cmp -s "$current_script" <(echo "$remote_script"); then
             echo "You are already running the latest version of scm-cli."
-            sleep 3  # Pause for 3 seconds before proceeding
+            sleep 2  # Pause for 2 seconds before proceeding
             echo
         else
             echo "Update found. Would you like to update now? Y/N"

@@ -183,6 +183,7 @@ list_games() {
                     ;;
                 [Uu])
                     check_for_updates
+                    exit 0  # Exit after updating
                     ;;
                 [Xx])
                     exit 0
@@ -468,6 +469,7 @@ check_for_updates() {
             echo
             if [[ "$confirm_update" =~ ^[Yy]$ ]]; then
                 curl -sL https://raw.githubusercontent.com/RekuNote/scm-cli/main/install.sh | bash
+                exit 0  # Exit after updating
             else
                 echo "Update aborted."
             fi

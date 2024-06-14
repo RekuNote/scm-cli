@@ -139,7 +139,7 @@ list_games() {
             echo "N to show Next Entries"
             echo "B to show Previous Entries"
             echo "G to Select Game"
-            echo "S to Skip to a character"
+            echo "S to Search Game"
             echo "U to Check for Updates"
             echo
 
@@ -170,14 +170,22 @@ list_games() {
                     echo "Indexing, this may take a moment..."
                     game_list=$(curl -s "${BASE_URL}/gamelist/" | jq -r '.games | .[] | "\(.game_id): \(.game_name) (\(.song_count) songs)"')
                     clear_and_print_art
-                    echo "Type the character you would like to skip to, or leave empty to cancel:"
-                    read character
-                    if [ -n "$character" ]; then
-                        local game_index=$(echo "$game_list" | grep -ni "^${character}" | head -n 1 | cut -d: -f1)
-                        if [ -n "$game_index" ]; then
-                            page=$(( (game_index - 1) / per_page ))  # Calculate page number
+                    echo "Type the name of the game you would like to search for, or leave empty to cancel:"
+                    read search_term
+                    if [ -n "$search_term" ]; then
+                        local search_results=$(echo "$game_list" | grep -i "$search_term")
+                        if [ -n "$search_results" ]; then
+                            clear_and_print_art
+                            echo "Search Results:"
+                            echo "$search_results"
+                            echo
+                            read -p "Insert Game ID, or leave blank to return to the game list: " game_id
+                            if [ -n "$game_id" ]; then
+                                search_songs "$game_id"
+                            fi
                         else
-                            echo "No games found starting with '$character'."
+                            echo "No games found matching '$search_term'."
+                            sleep 2
                         fi
                     fi
                     ;;
@@ -393,6 +401,8 @@ EOF
             download_file "$song_id" "$download_format" "$output_path"
         elif [[ "$user_input" =~ ^[Rr]$ ]]; then
             search_songs "$game_id"
+        elif [[ "$user_input" =~ ^[Xx]$ ]]; then
+            exit 0
         fi
     else
         echo "Error: Invalid JSON response."

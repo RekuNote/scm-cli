@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Set the window title
+# set window title
 echo -ne "\033]0;Smash Custom Music Archive\007"
 
 ascii_art=$(cat << 'EOF'
@@ -28,9 +28,18 @@ clear_and_print_art() {
     echo ""
 }
 
-# check if jq is installed
+# check if jq and pv are installed
 check_dependencies_installed() {
+    local missing_dependencies=()
     if ! command -v jq &> /dev/null; then
+        missing_dependencies+=("jq")
+    fi
+    if ! command -v pv &> /dev/null; then
+        missing_dependencies+=("pv")
+    fi
+
+    if [ ${#missing_dependencies[@]} -gt 0 ]; then
+        echo "The following dependencies are missing: ${missing_dependencies[@]}"
         return 1
     else
         return 0
@@ -48,11 +57,29 @@ install_jq_macos() {
     fi
 }
 
+# install pv on macOS
+install_pv_macos() {
+    if ! command -v brew &> /dev/null; then
+        echo "Homebrew is not installed. Please install Homebrew first."
+        exit 1
+    else
+        echo "Installing pv using Homebrew..."
+        brew install pv
+    fi
+}
+
 # install jq on Debian-based Linux
 install_jq_debian() {
     echo "Installing jq using apt-get..."
     sudo apt-get update
     sudo apt-get install -y jq
+}
+
+# install pv on Debian-based Linux
+install_pv_debian() {
+    echo "Installing pv using apt-get..."
+    sudo apt-get update
+    sudo apt-get install -y pv
 }
 
 # install jq on Red Hat-based Linux
@@ -61,43 +88,74 @@ install_jq_redhat() {
     sudo dnf install -y jq
 }
 
+# install pv on Red Hat-based Linux
+install_pv_redhat() {
+    echo "Installing pv using dnf..."
+    sudo dnf install -y pv
+}
+
 # install jq on Arch Linux
 install_jq_arch() {
     echo "Installing jq using pacman..."
     sudo pacman -S jq
 }
 
-# check and install jq
-check_and_install_jq() {
+# install pv on Arch Linux
+install_pv_arch() {
+    echo "Installing pv using pacman..."
+    sudo pacman -S pv
+}
+
+# check and install dependencies
+check_and_install_dependencies() {
     check_dependencies_installed
     local result=$?
     if [ $result -ne 0 ]; then
-        if [ $result -eq 1 ]; then
-            echo "jq is not installed."
-            read -p "Do you want to install jq? (yes/no): " install_jq
-            if [ "$install_jq" == "yes" ]; then
-                if [[ "$OSTYPE" == "darwin"* ]]; then
-                    install_jq_macos
-                elif [[ -f /etc/debian_version ]]; then
-                    install_jq_debian
-                elif [[ -f /etc/redhat-release ]]; then
-                    install_jq_redhat
-                elif [[ -f /etc/arch-release ]]; then
-                    install_jq_arch
+        local install_dependencies=("jq" "pv")
+        for dependency in "${install_dependencies[@]}"; do
+            if ! command -v $dependency &> /dev/null; then
+                echo "$dependency is not installed."
+                read -p "Do you want to install $dependency? (yes/no): " install_dep
+                if [ "$install_dep" == "yes" ]; then
+                    if [[ "$OSTYPE" == "darwin"* ]]; then
+                        if [ "$dependency" == "jq" ]; then
+                            install_jq_macos
+                        elif [ "$dependency" == "pv" ]; then
+                            install_pv_macos
+                        fi
+                    elif [[ -f /etc/debian_version ]]; then
+                        if [ "$dependency" == "jq" ]; then
+                            install_jq_debian
+                        elif [ "$dependency" == "pv" ]; then
+                            install_pv_debian
+                        fi
+                    elif [[ -f /etc/redhat-release ]]; then
+                        if [ "$dependency" == "jq" ]; then
+                            install_jq_redhat
+                        elif [ "$dependency" == "pv" ]; then
+                            install_pv_redhat
+                        fi
+                    elif [[ -f /etc/arch-release ]]; then
+                        if [ "$dependency" == "jq" ]; then
+                            install_jq_arch
+                        elif [ "$dependency" == "pv" ]; then
+                            install_pv_arch
+                        fi
+                    else
+                        echo "Unsupported OS. Please install $dependency manually."
+                        exit 1
+                    fi
                 else
-                    echo "Unsupported OS. Please install jq manually."
+                    echo "$dependency is required for this script to run."
                     exit 1
                 fi
-            else
-                echo "jq is required for this script to run."
-                exit 1
             fi
-        fi
+        done
     fi
 }
 
-# check and install jq if necessary
-check_and_install_jq
+# check and install dependencies if necessary
+check_and_install_dependencies
 
 # base url for api
 BASE_URL="https://www.smashcustommusic.net/json"
@@ -148,13 +206,13 @@ list_games() {
 
             case "$next_page_key" in
                 [Nn])
-                    if (( page + 1 < total_pages )); then  # Ensure we don't go beyond the last page
+                    if (( page + 1 < total_pages )); then  # ensure we don't go beyond the last page
                         next_page="N"
                         page=$((page + 1))
                     fi
                     ;;
                 [Bb])
-                    if (( page > 0 )); then  # Ensure we don't go before the first page
+                    if (( page > 0 )); then  # ensure we don't go before the first page
                         next_page="B"
                         page=$((page - 1))
                     fi
@@ -168,30 +226,71 @@ list_games() {
                 [Ss])
                     clear_and_print_art
                     echo "Indexing, this may take a moment..."
-                    game_list=$(curl -s "${BASE_URL}/gamelist/" | jq -r '.games | .[] | "\(.game_id): \(.game_name) (\(.song_count) songs)"')
+                    game_list=$(curl -s "${BASE_URL}/gamelist/" | jq -r '.games | .[] | "\(.game_id): \(.game_name) (\(.song_count) songs)"' | pv -p -s $(curl -s "${BASE_URL}/gamelist/" | jq -r '.games | length'))
                     clear_and_print_art
+                    echo "Indexing complete."
                     echo "Type the name of the game you would like to search for, or leave empty to cancel:"
                     read search_term
                     if [ -n "$search_term" ]; then
                         local search_results=$(echo "$game_list" | grep -i "$search_term")
-                        if [ -n "$search_results" ]; then
+                        local search_count=$(echo "$search_results" | wc -l | xargs)
+                        local search_page=0
+                        local search_total_pages=$(( (search_count + per_page - 1) / per_page ))
+                        while [ -n "$search_results" ]; do
+                            local search_offset=$((search_page * per_page))
+                            local search_page_results=$(echo "$search_results" | sed -n "$((search_offset + 1)),$((search_offset + per_page))p")
                             clear_and_print_art
-                            echo "Search Results:"
-                            echo "$search_results"
+                            echo "$search_count results for \"$search_term\":"
+                            echo ""
+                            echo "Results (Page $((search_page + 1)) of $search_total_pages):"
+                            echo ""
+                            echo "$search_page_results"
                             echo
-                            read -p "Insert Game ID, or leave blank to return to the game list: " game_id
-                            if [ -n "$game_id" ]; then
-                                search_songs "$game_id"
-                            fi
-                        else
-                            echo "No games found matching '$search_term'."
-                            sleep 2
-                        fi
+                            echo "X to Exit"
+                            echo "R to Return"
+                            echo "N to show Next Entries"
+                            echo "B to show Previous Entries"
+                            echo "G to Select Game"
+                            echo
+
+                            read -n 1 -s search_page_key
+                            echo
+
+                            case "$search_page_key" in
+                                [Nn])
+                                    if (( search_page + 1 < search_total_pages )); then
+                                        search_page=$((search_page + 1))
+                                    fi
+                                    ;;
+                                [Bb])
+                                    if (( search_page > 0 )); then
+                                        search_page=$((search_page - 1))
+                                    fi
+                                    ;;
+                                [Gg])
+                                    read -p "Insert Game ID, or leave blank to return to the game list: " game_id
+                                    if [ -n "$game_id" ]; then
+                                        search_songs "$game_id"
+                                        break
+                                    fi
+                                    ;;
+                                [Rr])
+                                    list_games
+                                    return
+                                    ;;
+                                [Xx])
+                                    exit 0
+                                    ;;
+                                *)
+                                    echo "Invalid option. Please try again."
+                                    ;;
+                            esac
+                        done
                     fi
                     ;;
                 [Uu])
                     check_for_updates
-                    exit 0  # Exit after updating
+                    exit 0  # exit after updating after updating
                     ;;
                 [Xx])
                     exit 0
@@ -225,7 +324,7 @@ search_songs() {
             local songs=$(echo "$response" | jq -r --argjson offset "$offset" --argjson per_page "$per_page" '.songs | .[$offset:$offset + $per_page][] | "\(.song_id): \(.song_name) (\(.song_length) seconds)"')
             song_list=$(echo "$response" | jq -r '.songs | .[] | "\(.song_id): \(.song_name) (\(.song_length) seconds)"')
             local song_count=$(echo "$response" | jq -r '.songs | length')
-            total_pages=$(( (song_count + per_page - 1) / per_page ))  # Calculate total pages
+            total_pages=$(( (song_count + per_page - 1) / per_page ))  # calculate total pages
             
             clear_and_print_art
             
@@ -248,13 +347,13 @@ search_songs() {
 
             case "$next_page_key" in
                 [Nn])
-                    if (( page + 1 < total_pages )); then  # Ensure we don't go beyond the last page
+                    if (( page + 1 < total_pages )); then  # ensure we don't go beyond the last page
                         next_page="N"
                         page=$((page + 1))
                     fi
                     ;;
                 [Bb])
-                    if (( page > 0 )); then  # Ensure we don't go before the first page
+                    if (( page > 0 )); then  # ensure we don't go before the first page
                         next_page="B"
                         page=$((page - 1))
                     fi
@@ -425,11 +524,11 @@ download_file() {
         local download_url="https://www.smashcustommusic.net/$download_format/$song_id.$download_format"
         local output_file="$output_path/${song_name// /_}.$download_format"
 
-        # Download with progress bar
+        # progress bar for downloading
         curl -L "$download_url" -o "$output_file" --user-agent "scm-py/0.1" --progress-bar
 
         if [ $? -eq 0 ]; then
-            # Rename .sw_bfstm files to .bfstm in /switch directory
+            # rename .sw_bfstm files to .bfstm in /switch dir
             if [[ "$download_format" == "sw_bfstm" ]]; then
                 mv "$output_file" "$output_path/${song_name// /_}.bfstm"
                 output_file="$output_path/${song_name// /_}.bfstm"
@@ -453,7 +552,7 @@ update_script() {
 
     if cmp -s "$current_script" <(echo "$remote_script"); then
         echo "You are already running the latest version of scm-cli."
-        sleep 3  # Pause for 3 seconds before proceeding
+        sleep 2  # wait for 2 seconds before proceeding
         echo
     else
         curl -sL https://raw.githubusercontent.com/RekuNote/scm-cli/main/install.sh | bash
@@ -471,7 +570,7 @@ check_for_updates() {
         local remote_script=$(curl -s https://raw.githubusercontent.com/RekuNote/scm-cli/main/scm-cli)
         if cmp -s "$current_script" <(echo "$remote_script"); then
             echo "You are already running the latest version of scm-cli."
-            sleep 3  # Pause for 3 seconds before proceeding
+            sleep 2  # wait for 2 seconds before proceeding
             echo
         else
             echo "Update found. Would you like to update now? Y/N"
@@ -479,7 +578,7 @@ check_for_updates() {
             echo
             if [[ "$confirm_update" =~ ^[Yy]$ ]]; then
                 curl -sL https://raw.githubusercontent.com/RekuNote/scm-cli/main/install.sh | bash
-                exit 0  # Exit after updating
+                exit 0  # exit after updating
             else
                 echo "Update aborted."
             fi
@@ -500,7 +599,7 @@ check_for_updates_no_clear() {
         local remote_script=$(curl -s https://raw.githubusercontent.com/RekuNote/scm-cli/main/scm-cli)
         if cmp -s "$current_script" <(echo "$remote_script"); then
             echo "You are already running the latest version of scm-cli."
-            sleep 3  # Pause for 3 seconds before proceeding
+            sleep 2  # wait for 2 seconds before proceeding
             echo
         else
             echo "Update found. Would you like to update now? Y/N"

@@ -228,7 +228,6 @@ list_games() {
                     echo "Indexing, this may take a moment..."
                     game_list=$(curl -s "${BASE_URL}/gamelist/" | jq -r '.games | .[] | "\(.game_id): \(.game_name) (\(.song_count) songs)"' | pv -p -s $(curl -s "${BASE_URL}/gamelist/" | jq -r '.games | length'))
                     clear_and_print_art
-                    echo "Indexing complete."
                     echo "Type the name of the game you would like to search for, or leave empty to cancel:"
                     read search_term
                     if [ -n "$search_term" ]; then

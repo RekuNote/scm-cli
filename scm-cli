@@ -29,7 +29,7 @@ clear_and_print_art() {
 }
 
 # check if jq is installed
-check_jq_installed() {
+check_dependencies_installed() {
     if ! command -v jq &> /dev/null; then
         return 1
     else
@@ -69,26 +69,29 @@ install_jq_arch() {
 
 # check and install jq
 check_and_install_jq() {
-    check_jq_installed
-    if [ $? -ne 0 ]; then
-        echo "jq is not installed."
-        read -p "Do you want to install jq? (yes/no): " install_jq
-        if [ "$install_jq" == "yes" ]; then
-            if [[ "$OSTYPE" == "darwin"* ]]; then
-                install_jq_macos
-            elif [[ -f /etc/debian_version ]]; then
-                install_jq_debian
-            elif [[ -f /etc/redhat-release ]]; then
-                install_jq_redhat
-            elif [[ -f /etc/arch-release ]]; then
-                install_jq_arch
+    check_dependencies_installed
+    local result=$?
+    if [ $result -ne 0 ]; then
+        if [ $result -eq 1 ]; then
+            echo "jq is not installed."
+            read -p "Do you want to install jq? (yes/no): " install_jq
+            if [ "$install_jq" == "yes" ]; then
+                if [[ "$OSTYPE" == "darwin"* ]]; then
+                    install_jq_macos
+                elif [[ -f /etc/debian_version ]]; then
+                    install_jq_debian
+                elif [[ -f /etc/redhat-release ]]; then
+                    install_jq_redhat
+                elif [[ -f /etc/arch-release ]]; then
+                    install_jq_arch
+                else
+                    echo "Unsupported OS. Please install jq manually."
+                    exit 1
+                fi
             else
-                echo "Unsupported OS. Please install jq manually."
+                echo "jq is required for this script to run."
                 exit 1
             fi
-        else
-            echo "jq is required for this script to run."
-            exit 1
         fi
     fi
 }
@@ -170,7 +173,7 @@ list_games() {
                     echo "Type the character you would like to skip to, or leave empty to cancel:"
                     read character
                     if [ -n "$character" ]; then
-                        local game_index=$(echo "$game_list" | grep -n "^${character}" | head -n 1 | cut -d: -f1)
+                        local game_index=$(echo "$game_list" | grep -ni "^${character}" | head -n 1 | cut -d: -f1)
                         if [ -n "$game_index" ]; then
                             page=$(( (game_index - 1) / per_page ))  # Calculate page number
                         else
@@ -248,19 +251,9 @@ search_songs() {
                     fi
                     ;;
                 [Ss])
-                    clear_and_print_art
-                    echo "Indexing, this may take a moment..."
-                    song_list=$(curl -s "${BASE_URL}/game/$game_id" | jq -r '.songs | .[] | "\(.song_id): \(.song_name) (\(.song_length) seconds)"')
-                    clear_and_print_art
-                    echo "Type the character you would like to skip to, or leave empty to cancel:"
-                    read character
-                    if [ -n "$character" ]; then
-                        local song_index=$(echo "$song_list" | grep -n "^${character}" | head -n 1 | cut -d: -f1)
-                        if [ -n "$song_index" ]; then
-                            page=$(( (song_index - 1) / per_page ))  # Calculate page number
-                        else
-                            echo "No songs found starting with '$character'."
-                        fi
+                    read -p "Insert Song ID, or leave blank to cancel: " song_id
+                    if [ -n "$song_id" ]; then
+                        show_track_info "$song_id"
                     fi
                     ;;
                 [Rr])
@@ -418,12 +411,21 @@ download_file() {
 
     if echo "$response" | jq . > /dev/null 2>&1; then
         local song_name=$(echo "$response" | jq -r '.name')
-        local download_url="https://www.smashcustommusic.net/$download_format/$song_id"
+        local download_url="https://www.smashcustommusic.net/$download_format/$song_id.$download_format"
         local output_file="$output_path/${song_name// /_}.$download_format"
-        curl -o "$output_file" "$download_url"
+
+        # Download with progress bar
+        curl -L "$download_url" -o "$output_file" --user-agent "scm-py/0.1" --progress-bar
 
         if [ $? -eq 0 ]; then
-            echo "Downloaded to: $output_file"
+            # Rename .sw_bfstm files to .bfstm in /switch directory
+            if [[ "$download_format" == "sw_bfstm" ]]; then
+                mv "$output_file" "$output_path/${song_name// /_}.bfstm"
+                output_file="$output_path/${song_name// /_}.bfstm"
+            fi
+            echo "File downloaded successfully to $output_file. Press any key to return."
+            read -n 1 -s
+            show_track_info "$song_id"
         else
             echo "Error: Failed to download file."
         fi

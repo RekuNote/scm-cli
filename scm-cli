@@ -232,6 +232,13 @@ list_games() {
                     read search_term
                     if [ -n "$search_term" ]; then
                         local search_results=$(echo "$game_list" | grep -i "$search_term")
+                        if [ -z "$search_results" ]; then
+                            clear_and_print_art
+                            echo "No search results found for your query. Press any key to return."
+                            read -n 1 -s
+                            list_games
+                            return
+                        fi
                         local search_count=$(echo "$search_results" | wc -l | xargs)  # Remove leading spaces
                         local search_page=0
                         local search_total_pages=$(( (search_count + per_page - 1) / per_page ))

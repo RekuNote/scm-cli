@@ -45,12 +45,12 @@
 
 ## Installation
 
-### Method 1 - nv (Recommended)
+### Method 1 - [nv](https://github.com/RekuNote/scm-cli) (Recommended)
 <i>Note - This method only works on Debian-based systems (like Ubuntu). For any other Linux distro or macOS, use Method 2.</i>
 
 <br>
 
-Install `nv` with it's installer command:
+Install nv with it's installer command:
 
 ```sh
 curl -sSL https://raw.githubusercontent.com/RekuNote/nv/main/install.sh | sudo bash

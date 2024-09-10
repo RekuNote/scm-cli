@@ -45,17 +45,55 @@
 
 ## Installation
 
-Run the install command (this command can also be used to update):<br>
-`curl -sL https://raw.githubusercontent.com/RekuNote/scm-cli/main/install.sh | bash`
+### Method 1 - nv (Recommended)
+<i>Note - This method only works on Debian-based systems (like Ubuntu). For any other Linux distro or macOS, use Method 2.</i>
 
 <br>
-If this doesn't work, run scm-cli portably by:
+
+Install `nv` with it's installer command:
+
+```sh
+curl -sSL https://raw.githubusercontent.com/RekuNote/nv/main/install.sh | sudo bash
+```
+
+Install `scm-cli` with `nv`:
+
+```sh
+sudo nv update
+```
+```sh
+sudo nv install scm-cli
+```
+<br>
+
+### Method 2 - scm-cli installer script
+
+<br>
+
+Run the install command:<br>
+```
+curl -sL https://raw.githubusercontent.com/RekuNote/scm-cli/main/install.sh | bash
+```
+
+<br>
+
+### Method 3 - Running scm-cli portably
+
+<i>If neither Method 1 or 2 work, you can run scm-cli portably by:</i>
+
+<br>
 
 - Downloading the `scm-cli` file
 - Allowing execute permissions:
-`chmod +x scm-cli`
+```
+chmod +x scm-cli
+```
 - Running the program:
-`./scm-cli`
+```
+./scm-cli
+```
+
+<br>
 
 ## Usage
 
@@ -65,9 +103,13 @@ Run scm-cli:
 scm-cli
 ```
 
+<br>
+
 ### Options
 
-- `-u, --update`               Updates to latest version
+- `-u, --update`               Checks for updates
+
+<br>
 
 ## Examples
 

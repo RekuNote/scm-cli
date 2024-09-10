@@ -68,7 +68,7 @@ sudo nv update && sudo nv install scm-cli
 <br>
 
 Run the install command:<br>
-```
+```sh
 curl -sL https://raw.githubusercontent.com/RekuNote/scm-cli/main/install.sh | bash
 ```
 
@@ -82,11 +82,11 @@ curl -sL https://raw.githubusercontent.com/RekuNote/scm-cli/main/install.sh | ba
 
 - Downloading the `scm-cli` file
 - Allowing execute permissions:
-```
+```sh
 chmod +x scm-cli
 ```
 - Running the program:
-```
+```sh
 ./scm-cli
 ```
 
@@ -112,7 +112,7 @@ scm-cli
 
 - Run scm-cli normally:
 
-```
+```sh
 scm-cli
 ```
 

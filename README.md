@@ -45,7 +45,7 @@
 
 ## Installation
 
-### Method 1 - [nv](https://github.com/RekuNote/scm-cli) (Recommended)
+### Method 1 - [nv](https://github.com/RekuNote/nv) (Recommended)
 <i>Note - This method only works on Debian-based systems (like Ubuntu). For any other Linux distro or macOS, use Method 2.</i>
 
 <br>

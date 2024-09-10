@@ -50,13 +50,13 @@
 
 <br>
 
-Install nv with it's installer command:
+Install nv with it's installer command if not already:
 
 ```sh
 curl -sSL https://raw.githubusercontent.com/RekuNote/nv/main/install.sh | sudo bash
 ```
 
-Install `scm-cli` with `nv` if not already:
+Install `scm-cli` with `nv`:
 
 ```sh
 sudo nv update && sudo nv install scm-cli

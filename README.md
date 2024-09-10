@@ -61,6 +61,10 @@ Install `scm-cli` with `nv` if not already:
 ```sh
 sudo nv update && sudo nv install scm-cli
 ```
+Running the program:
+```sh
+scm-cli
+```
 <br>
 
 ### Method 2 - scm-cli installer script
@@ -71,7 +75,10 @@ Run the install command:<br>
 ```sh
 curl -sL https://raw.githubusercontent.com/RekuNote/scm-cli/main/install.sh | bash
 ```
-
+Running the program:
+```sh
+scm-cli
+```
 <br>
 
 ### Method 3 - Running scm-cli portably
@@ -80,12 +87,12 @@ curl -sL https://raw.githubusercontent.com/RekuNote/scm-cli/main/install.sh | ba
 
 <br>
 
-- Downloading the `scm-cli` file
-- Allowing execute permissions:
+Downloading the `scm-cli` file
+Allowing execute permissions:
 ```sh
 chmod +x scm-cli
 ```
-- Running the program:
+Running the program:
 ```sh
 ./scm-cli
 ```

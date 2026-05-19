@@ -156,7 +156,7 @@ check_and_install_dependencies() {
 check_and_install_dependencies
 
 # base url for api
-BASE_URL="https://www.smashcustommusic.net/json"
+BASE_URL="https://smashcustommusic.net/json"
 
 # list all games
 list_games() {
@@ -524,7 +524,7 @@ download_file() {
 
     if echo "$response" | jq . > /dev/null 2>&1; then
         local song_name=$(echo "$response" | jq -r '.name')
-        local download_url="https://www.smashcustommusic.net/$download_format/$song_id.$download_format"
+        local download_url="https://smashcustommusic.net/$download_format/$song_id.$download_format"
         local output_file="$output_path/${song_name// /_}.$download_format"
 
         # Download with progress bar
